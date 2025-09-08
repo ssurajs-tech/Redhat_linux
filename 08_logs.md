@@ -136,15 +136,6 @@ sudo grep "2025-09-08" /var/log/messages
 
 ---
 
-## Next Sections
 
-- [Review Syslog Files (and Guided Exercise)](#review-syslog-files-and-guided-exercise)
-- [Review System Journal Entries (and Guided Exercise)](#review-system-journal-entries-and-guided-exercise)
-- [Preserve the System Journal (and Guided Exercise)](#preserve-the-system-journal-and-guided-exercise)
-- [Maintain Accurate Time (and Guided Exercise)](#maintain-accurate-time-and-guided-exercise)
-- [Lab: Analyze and Store Logs](#lab-analyze-and-store-logs)
 
----
-
-*Continue to the next section for hands-on exercises and practical applications of system logging and troubleshooting in Red Hat Enterprise Linux.*
 
