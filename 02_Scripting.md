@@ -128,6 +128,8 @@ grep '^\(cat\|dog\)' file
 
 ---
 
+
+
 ## Practical tips
 
 - To search recursively in directories, use `grep -r 'pattern' directory`.
