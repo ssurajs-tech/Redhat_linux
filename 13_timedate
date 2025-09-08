@@ -1,0 +1,601 @@
+Maintain Accurate Time
+
+Objectives  
+Maintain accurate time synchronization with Network Time Protocol (NTP) and configure the time zone to ensure correct time stamps for events recorded by the system journal and logs.
+
+> **Explanation:**  
+> Accurate time is crucial for system logs, troubleshooting, and for services that rely on time-based authentication or scheduling. NTP ensures all systems in a network have the same time.
+
+---
+
+Administer Local Clocks and Time Zones  
+System time synchronization is critical for log file analysis across multiple systems. Also, some services might require time synchronization to work correctly. Machines use the Network Time Protocol to provide and obtain correct time information over the internet. A machine might get accurate time information from public NTP services, such as the NTP Pool Project. Another option is to sync with a high-quality hardware clock to serve accurate time to local clients.
+
+> **Technical Jargon:**  
+> - **NTP (Network Time Protocol):** A protocol for synchronizing the clocks of computer systems over packet-switched, variable-latency data networks.  
+> - **NTP Pool Project:** A large cluster of time servers providing reliable easy-to-use NTP service for millions of clients.
+
+---
+
+The `timedatectl` command shows an overview of the current time-related system settings, including the current time, time zone, and NTP synchronization settings of the system.
+
+```shell
+[user@host ~]$ timedatectl
+               Local time: Wed 2022-03-16 05:53:05 EDT
+           Universal time: Wed 2022-03-16 09:53:05 UTC
+                 RTC time: Wed 2022-03-16 09:53:05
+                Time zone: America/New_York (EDT, -0400)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+```
+
+> **Explanation:**  
+> - **Local time:** The current time in the configured time zone.  
+> - **Universal time (UTC):** Coordinated Universal Time, the global time standard.  
+> - **RTC time:** Real-Time Clock, hardware clock on the motherboard.  
+> - **Time zone:** The region's time zone, e.g., America/New_York.  
+> - **System clock synchronized:** Whether the system clock is synced with NTP.  
+> - **NTP service:** Status of the NTP service (active/inactive).  
+> - **RTC in local TZ:** Whether the hardware clock is set to local time (usually 'no' for servers).
+
+---
+
+You can list a database of time zones with the `timedatectl` command `list-timezones` option:
+
+```shell
+[user@host ~]$ timedatectl list-timezones
+Africa/Abidjan
+Africa/Accra
+Africa/Addis_Ababa
+Africa/Algiers
+Africa/Asmara
+Africa/Bamako
+...output omitted...
+```
+
+> **Tip:**  
+> Use `timedatectl list-timezones | grep America` to filter for American time zones.
+
+---
+
+The Internet Assigned Numbers Authority (IANA) provides a public time zone database, and the `timedatectl` command bases the time zone names on that database. IANA names time zones based on the continent or ocean, and then typically (not always) the largest city within the time zone region. For example, most of the US Mountain time zone is America/Denver.
+
+Some localities inside the time zone have different daylight saving time rules. For example, in the US, much of the state of Arizona (US Mountain time) does not change to daylight saving time, and is in the America/Phoenix time zone.
+
+---
+
+Use the `tzselect` command to identify the correct time zone name. This command interactively prompts the user with questions about the system's location, and outputs the name of the correct time zone. It does not change the system's time zone setting.
+
+> **Example:**  
+> ```shell
+> $ tzselect
+> Please select a continent or ocean.
+> 1) Africa
+> 2) Americas
+> ...
+> #? 2
+> Please select a country.
+> ...
+> #? 28
+> The following information has been given:
+> Haiti
+> Therefore TZ='America/Port-au-Prince' will be used.
+> ```
+
+---
+
+The root user can change the system setting to update the current time zone with the `timedatectl` command `set-timezone` option. For example, the following `timedatectl` command updates the current time zone to America/Phoenix.
+
+```shell
+[root@host ~]# timedatectl set-timezone America/Phoenix
+[root@host ~]# timedatectl
+               Local time: Wed 2022-03-16 03:05:55 MST
+           Universal time: Wed 2022-03-16 10:05:55 UTC
+                 RTC time: Wed 2022-03-16 10:05:55
+                Time zone: America/Phoenix (MST, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+```
+
+> **Tip:**  
+> To set the time zone to UTC:  
+> ```shell
+> timedatectl set-timezone UTC
+> ```
+
+---
+
+Use the `timedatectl` command `set-time` option to change the system's current time. You might specify the time in the "YYYY-MM-DD hh:mm:ss" format, where you can omit either the date or the time. For example, the following `timedatectl` command changes the time to 09:00:00.
+
+```shell
+[root@host ~]# timedatectl set-time 9:00:00
+[root@host ~]# timedatectl
+               Local time: Fri 2019-04-05 09:00:27 MST
+           Universal time: Fri 2019-04-05 16:00:27 UTC
+                 RTC time: Fri 2019-04-05 16:00:27
+                Time zone: America/Phoenix (MST, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+```
+
+> **Note:**  
+> If you get "Failed to set time: Automatic time synchronization is enabled", disable NTP first:  
+> ```shell
+> timedatectl set-ntp false
+> ```
+
+---
+
+The `timedatectl` command `set-ntp` option enables or disables NTP synchronization for automatic time adjustment. The option requires either a true or a false argument to turn it on or off. For example, the following `timedatectl` command turns off NTP synchronization.
+
+```shell
+[root@host ~]# timedatectl set-ntp false
+```
+
+> **Note:**  
+> On RHEL 9, this controls the `chronyd` service. On other distributions, it may control `ntpd` or another NTP service.
+
+---
+
+Configure and Monitor the chronyd Service  
+The `chronyd` service tracks the usually inaccurate local Real-Time Clock (RTC) by synchronizing it to the configured NTP servers. If no network connectivity is available, then the `chronyd` service calculates the RTC clock drift, and records it in the file that the `driftfile` value specifies in the `/etc/chrony.conf` configuration file.
+
+> **Technical Jargon:**  
+> - **chronyd:** Daemon for chrony, a versatile implementation of NTP.  
+> - **RTC drift:** The gradual loss of accuracy of the hardware clock.
+
+---
+
+By default, the `chronyd` service uses servers from the NTP Pool Project to synchronize time and requires no additional configuration. You might need to change the NTP servers for a machine that runs on an isolated network.
+
+The stratum of the NTP time source determines its quality. The stratum determines the number of hops that the machine is away from a high-performance reference clock. The reference clock is a stratum 0 time source. An NTP server that is directly attached to the reference clock is a stratum 1 time source. A machine that synchronizes time from the NTP server is a stratum 2 time source.
+
+> **Example:**  
+> - GPS or atomic clock: Stratum 0  
+> - NTP server connected to GPS: Stratum 1  
+> - Your server syncing from stratum 1: Stratum 2
+
+---
+
+The server and the peer are the two categories of time sources that you can declare in the `/etc/chrony.conf` configuration file. The server is one stratum above the local NTP server, and the peer is at the same stratum level. You can define multiple servers and peers in the chronyd configuration file, one per line.
+
+The first argument of the server line is the IP address or DNS name of the NTP server. Following the server IP address or name, you can list a series of options for the server. Red Hat recommends using the `iburst` option, because then the chronyd service takes four measurements in a short time period for a more accurate initial clock synchronization after the service starts. For more information about the chronyd configuration file options, use the `man 5 chrony.conf` command.
+
+> **Example:**  
+> ```shell
+> server classroom.example.com iburst
+> ```
+
+---
+
+Restart the service after pointing the chronyd service to the classroom.example.com local time source.
+
+```shell
+[root@host ~]# systemctl restart chronyd
+```
+
+---
+
+The `chronyc` command acts as a client to the chronyd service. After setting up NTP synchronization, verify that the local system is seamlessly using the NTP server to synchronize the system clock, by using the `chronyc sources` command. For more verbose output with additional explanations about the output, use the `chronyc sources -v` command.
+
+```shell
+[root@host ~]# chronyc sources -v
+
+  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.
+ / .- Source state '*' = current best, '+' = combined, '-' = not combined,
+| /             'x' = may be in error, '~' = too variable, '?' = unusable.
+||                                                 .- xxxx [ yyyy ] +/- zzzz
+||      Reachability register (octal) -.           |  xxxx = adjusted offset,
+||      Log2(Polling interval) --.      |          |  yyyy = measured offset,
+||                                \     |          |  zzzz = estimated error.
+||                                 |    |           \
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+===============================================================================
+^* 172.25.254.254                3   6    17    26  +2957ns[+2244ns] +/-   25ms
+```
+
+> **Explanation:**  
+> - `^*` means this is the current best source (starred).  
+> - `Stratum`: NTP stratum level.  
+> - `Poll`: Polling interval.  
+> - `Reach`: Octal reachability register (higher is better).  
+> - `LastRx`: Seconds since last response.  
+> - `Last sample`: Offset and error estimate.
+
+---
+
+**Guided Exercise: Maintain Accurate Time**  
+Adjust the time zone on a server and ensure that its system clock is synchronized with an NTP time source.
+
+Outcomes
+
+- Change the time zone on a server.
+- Configure the server to synchronize its time with an NTP time source.
+
+---
+
+As the student user on the workstation machine, use the lab command to prepare your system for this exercise.
+
+This command prepares your environment and ensures that all required resources are available.
+
+```shell
+[student@workstation ~]$ lab start logs-maintain
+```
+
+---
+
+**Instructions**
+
+Log in to the servera machine as the student user and switch to the root user.
+
+```shell
+[student@workstation ~]$ ssh student@servera
+...output omitted...
+[student@servera ~]$ sudo -i
+[sudo] password for student: student
+```
+
+---
+
+For this exercise, pretend that the servera machine is relocated to Haiti and that you need to update the time zone. Elevate the privileges of the student user to run the timedatectl command to update the time zone.
+
+Select the appropriate time zone for Haiti.
+
+```shell
+[root@servera ~]# tzselect
+Please identify a location so that time zone rules can be set correctly.
+Please select a continent, ocean, "coord", or "TZ".
+ 1) Africa
+ 2) Americas
+ 3) Antarctica
+ 4) Asia
+ 5) Atlantic Ocean
+ 6) Australia
+ 7) Europe
+ 8) Indian Ocean
+ 9) Pacific Ocean
+10) coord - I want to use geographical coordinates.
+11) TZ - I want to specify the timezone using the Posix TZ format.
+#? 2
+Please select a country whose clocks agree with yours.
+ 1) Anguilla		  19) Dominican Republic    37) Peru
+ 2) Antigua & Barbuda	  20) Ecuador		    38) Puerto Rico
+ 3) Argentina		  21) El Salvador	    39) St Barthelemy
+ 4) Aruba		  22) French Guiana	    40) St Kitts & Nevis
+ 5) Bahamas		  23) Greenland		    41) St Lucia
+ 6) Barbados		  24) Grenada		    42) St Maarten (Dutch)
+ 7) Belize		  25) Guadeloupe	    43) St Martin (French)
+ 8) Bolivia		  26) Guatemala		    44) St Pierre & Miquelon
+ 9) Brazil		  27) Guyana		    45) St Vincent
+10) Canada		  28) Haiti		    46) Suriname
+11) Caribbean NL	  29) Honduras		    47) Trinidad & Tobago
+12) Cayman Islands	  30) Jamaica		    48) Turks & Caicos Is
+13) Chile		  31) Martinique	    49) United States
+14) Colombia		  32) Mexico		    50) Uruguay
+15) Costa Rica		  33) Montserrat	    51) Venezuela
+16) Cuba		  34) Nicaragua		    52) Virgin Islands (UK)
+17) Curaçao		  35) Panama		    53) Virgin Islands (US)
+18) Dominica		  36) Paraguay
+#? 28
+
+The following information has been given:
+
+	Haiti
+
+Therefore TZ='America/Port-au-Prince' will be used.
+Selected time is now:	Wed Mar 16 07:10:35 EDT 2022.
+Universal Time is now:	Wed Mar 16 11:10:35 UTC 2022.
+Is the above information OK?
+1) Yes
+2) No
+#? 1
+
+You can make this change permanent for yourself by appending the line
+	TZ='America/Port-au-Prince'; export TZ
+to the file '.profile' in your home directory; then log out and log in again.
+
+Here is that TZ value again, this time on standard output so that you can use the /usr/bin/tzselect command in shell scripts:
+America/Port-au-Prince
+```
+
+---
+
+Update the time zone on the servera machine to America/Port-au-Prince.
+
+```shell
+[root@servera ~]# timedatectl set-timezone America/Port-au-Prince
+```
+
+Verify that you correctly set the time zone to America/Port-au-Prince.
+
+```shell
+[root@servera ~]# timedatectl
+               Local time: Wed 2022-03-16 07:13:25 EDT
+           Universal time: Wed 2022-03-16 11:13:25 UTC
+                 RTC time: Wed 2022-03-16 11:13:24
+                Time zone: America/Port-au-Prince (EDT, -0400)
+System clock synchronized: no
+              NTP service: inactive
+          RTC in local TZ: no
+```
+
+---
+
+Configure the chronyd service on the servera machine to synchronize the system time with the classroom.example.com server as the NTP time source.
+
+Edit the `/etc/chrony.conf` configuration file to specify the classroom.example.com server as the NTP time source. The following output shows the configuration line to add to the configuration file, which includes the iburst option to speed up initial time synchronization:
+
+```shell
+...output omitted...
+server classroom.example.com iburst
+...output omitted...
+```
+
+---
+
+Enable time synchronization on the servera machine. The command activates the NTP server with the settings from the `/etc/chrony.conf` configuration file. That command might activate either the chronyd or the ntpd service, depending on which service is currently installed on the system.
+
+```shell
+[root@servera ~]# timedatectl set-ntp true
+```
+
+---
+
+Verify that the servera machine configuration synchronizes with the classroom.example.com time source in the classroom environment.
+
+Verify that time synchronization is enabled on the servera machine.
+
+> **Note:**  
+> If the output shows that the clock is not synchronized, then wait for a few seconds and rerun the timedatectl command. It takes a few seconds to successfully synchronize the time settings with the time source.
+
+```shell
+[root@servera ~]# timedatectl
+               Local time: Wed 2022-03-16 07:24:13 EDT
+           Universal time: Wed 2022-03-16 11:24:13 UTC
+                 RTC time: Wed 2022-03-16 11:24:13
+                Time zone: America/Port-au-Prince (EDT, -0400)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+```
+
+---
+
+Verify that the servera machine currently synchronizes its time settings with the classroom.example.com time source.
+
+The output shows an asterisk character (*) in the source state (S) field for the classroom.example.com NTP time source. The asterisk indicates that the local system time successfully synchronizes with the NTP time source.
+
+```shell
+[root@servera ~]# chronyc sources -v
+
+  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.
+ / .- Source state '*' = current best, '+' = combined, '-' = not combined,
+| /             'x' = may be in error, '~' = too variable, '?' = unusable.
+||                                                 .- xxxx [ yyyy ] +/- zzzz
+||      Reachability register (octal) -.           |  xxxx = adjusted offset,
+||      Log2(Polling interval) --.      |          |  yyyy = measured offset,
+||                                \     |          |  zzzz = estimated error.
+||                                 |    |           \
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+===============================================================================
+^* classroom.example.com         3   6    17    51   -118ns[  +49us] +/-   25ms
+```
+
+---
+
+Return to the workstation system as the student user.
+
+```shell
+[root@servera ~]# exit
+logout
+[student@servera ~]$ exit
+logout
+Connection to servera closed.
+[student@workstation ~]$
+```
+
+---
+
+**Finish**
+
+On the workstation machine, change to the student user home directory and use the lab command to complete this exercise. This step is important to ensure that resources from previous exercises do not impact upcoming exercises.
+
+---
+
+**Analyze and Store Logs**  
+Change the time zone on an existing server and configure a new log file for all events for authentication failures.
+
+Outcomes
+
+- Update the time zone on an existing server.
+- Configure a new log file to store all messages for authentication failures.
+
+---
+
+As the student user on the workstation machine, use the lab command to prepare your system for this exercise.
+
+```shell
+[student@workstation ~]$ lab start logs-review
+```
+
+---
+
+**Instructions**
+
+Log in to the serverb machine as the student user.
+
+```shell
+[student@workstation ~]$ ssh student@serverb
+...output omitted...
+[student@serverb ~]$
+```
+
+---
+
+Pretend that the serverb machine is relocated to Jamaica and that you must update the time zone to America/Jamaica. Verify that you correctly set the appropriate time zone.
+
+Select the appropriate time zone for Jamaica.
+
+```shell
+[student@serverb ~]$ tzselect
+Please identify a location so that time zone rules can be set correctly.
+Please select a continent, ocean, "coord", or "TZ".
+ 1) Africa
+ 2) Americas
+ 3) Antarctica
+ 4) Asia
+ 5) Atlantic Ocean
+ 6) Australia
+ 7) Europe
+ 8) Indian Ocean
+ 9) Pacific Ocean
+10) coord - I want to use geographical coordinates.
+11) TZ - I want to specify the timezone using the Posix TZ format.
+#? 2
+Please select a country whose clocks agree with yours.
+ 1) Anguilla            19) Dominican Republic  37) Peru
+ 2) Antigua & Barbuda   20) Ecuador             38) Puerto Rico
+ 3) Argentina           21) El Salvador         39) St Barthelemy
+ 4) Aruba               22) French Guiana       40) St Kitts & Nevis
+ 5) Bahamas             23) Greenland           41) St Lucia
+ 6) Barbados            24) Grenada             42) St Maarten (Dutch)
+ 7) Belize              25) Guadeloupe          43) St Martin (French)
+ 8) Bolivia             26) Guatemala           44) St Pierre & Miquelon
+ 9) Brazil              27) Guyana              45) St Vincent
+10) Canada              28) Haiti               46) Suriname
+11) Caribbean NL        29) Honduras            47) Trinidad & Tobago
+12) Cayman Islands      30) Jamaica             48) Turks & Caicos Is
+13) Chile               31) Martinique          49) United States
+14) Colombia            32) Mexico              50) Uruguay
+15) Costa Rica          33) Montserrat          51) Venezuela
+16) Cuba                34) Nicaragua           52) Virgin Islands (UK)
+17) Curaçao             35) Panama              53) Virgin Islands (US)
+18) Dominica            36) Paraguay
+#? 30
+
+The following information has been given:
+
+	Jamaica
+
+Therefore TZ='America/Jamaica' will be used.
+Selected time is now:	Wed Mar 16 07:17:15 EST 2022.
+Universal Time is now:	Wed Mar 16 12:17:15 UTC 2022.
+Is the above information OK?
+1) Yes
+2) No
+#? 1
+
+You can make this change permanent for yourself by appending the line
+	TZ='America/Jamaica'; export TZ
+to the file '.profile' in your home directory; then log out and log in again.
+
+Here is that TZ value again, this time on standard output so that you can use the /usr/bin/tzselect command in shell scripts:
+America/Jamaica
+```
+
+---
+
+Elevate the student user privileges to update the time zone of the serverb server to America/Jamaica.
+
+```shell
+[student@serverb ~]$ sudo timedatectl set-timezone America/Jamaica
+[sudo] password for student: student
+```
+
+Verify that you successfully set the time zone to America/Jamaica.
+
+```shell
+[student@serverb ~]$ timedatectl
+               Local time: Wed 2022-03-16 07:18:40 EST
+           Universal time: Wed 2022-03-16 12:18:40 UTC
+                 RTC time: Wed 2022-03-16 12:18:40
+                Time zone: America/Jamaica (EST, -0500)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+```
+
+---
+
+View the recorded log events in the previous 30 minutes on the serverb machine.
+
+```shell
+[student@serverb ~]$ journalctl --since "-30min"
+...output omitted...
+Mar 16 07:10:58 localhost kernel: x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT
+Mar 16 07:10:58 localhost kernel: found SMP MP-table at [mem 0x000f5bd0-0x000f5bdf]
+Mar 16 07:10:58 localhost kernel: Using GB pages for direct mapping
+Mar 16 07:10:58 localhost kernel: RAMDISK: [mem 0x2e0d9000-0x33064fff]
+Mar 16 07:10:58 localhost kernel: ACPI: Early table checksum verification disabled
+Mar 16 07:10:58 localhost kernel: ACPI: RSDP 0x00000000000F5B90 000014 (v00 BOCHS )
+Mar 16 07:10:58 localhost kernel: ACPI: RSDT 0x000000007FFE12C4 00002C (v01 BOCHS  BXPCRSDT 00000001 BXPC 00000001)
+Mar 16 07:10:58 localhost kernel: ACPI: FACP 0x000000007FFE11D0 000074 (v01 BOCHS  BXPCFACP 00000001 BXPC 00000001)
+Mar 16 07:10:58 localhost kernel: ACPI: DSDT 0x000000007FFDFDC0 001410 (v01 BOCHS  BXPCDSDT 00000001 BXPC 00000001)
+lines 1-50/50 q
+[student@serverb ~]$
+```
+
+> **Explanation:**  
+> `journalctl --since "-30min"` shows all logs from the last 30 minutes.
+
+---
+
+Create the `/etc/rsyslog.d/auth-errors.conf` file. Configure the rsyslog service to write the Logging test authpriv.alert message to the `/var/log/auth-errors` file. Use the authpriv facility and the alert priority.
+
+Create the `/etc/rsyslog.d/auth-errors.conf` file and specify the new `/var/log/auth-errors` file as the destination for authentication and security messages.
+
+```shell
+authpriv.alert  /var/log/auth-errors
+```
+
+> **Explanation:**  
+> - **authpriv:** Facility for security/authorization messages.  
+> - **alert:** Priority level (higher than error, lower than emergency).  
+> - This line tells rsyslog to write all `authpriv` messages with `alert` priority to `/var/log/auth-errors`.
+
+---
+
+Restart the rsyslog service to apply the configuration file changes.
+
+```shell
+[student@serverb ~]$ sudo systemctl restart rsyslog
+```
+
+---
+
+Use the `logger -p` command to write the Logging test authpriv.alert message to the `/var/log/auth-errors` file. Use the authpriv facility and the alert priority.
+
+```shell
+[student@serverb ~]$ logger -p authpriv.alert "Logging test authpriv.alert"
+```
+
+---
+
+Verify that the `/var/log/auth-errors` file contains the log entry with the Logging test authpriv.alert message.
+
+```shell
+[student@serverb ~]$ sudo tail /var/log/auth-errors
+Mar 16 07:25:12 serverb student[1339]: Logging test authpriv.alert
+```
+
+---
+
+Return to the workstation system as the student user.
+
+```shell
+[student@serverb ~]$ exit
+logout
+Connection to serverb closed.
+[student@workstation ~]$
+```
+
+---
+
+> **Summary:**  
+> - Use `timedatectl` and `tzselect` to manage time zones.  
+> - Use `chronyd` and `chronyc` for NTP time synchronization.  
+> - Use `rsyslog` to direct specific log messages to custom files.  
+> - Use `journalctl` to view logs from the systemd journal.
