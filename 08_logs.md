@@ -134,6 +134,20 @@ sudo grep "2025-09-08" /var/log/messages
 **Q5: What command would you use to view all mail server logs?**  
 *A5: `less /var/log/maillog`*
 
+
+###  Summary
+The systemd-journald and rsyslog services capture and write log messages to the appropriate files.
+
+The /var/log directory contains log files.
+
+Periodic rotation of log files prevents them from filling up the file-system space.
+
+The systemd journals are temporary and do not persist across a reboot.
+
+The chronyd service helps to synchronize time settings with a time source.
+
+You can update the time zone of the server based on its location.
+
 ---
 
 
