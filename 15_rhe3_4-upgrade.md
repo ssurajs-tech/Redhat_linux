@@ -1,4 +1,4 @@
-```
+
 # RHEL 7 to RHEL 8 Upgrade Guide
 
 This document describes how to upgrade Red Hat Enterprise Linux 7 (RHEL 7) to RHEL 8 using the Leapp utility.
@@ -59,12 +59,5 @@ reboot
 - **Firewall:** iptables → nftables
 - **Default Python:** 2.7 (RHEL 7) → 3.x (RHEL 8)
 
-## References
 
-- [Official RHEL 8 Upgrade Guide](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/upgrading_from_rhel_7_to_rhel_8/index)
-- [Leapp Utility Documentation](https://access.redhat.com/documentation/en-us/)
-
----
-_This guide is provided as a community resource. Double-check Red Hat documentation for your production environment requirements._
-```
 
