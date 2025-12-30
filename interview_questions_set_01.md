@@ -1,7 +1,4 @@
-01. How to Upgrade from RHEL 7 to RHEL 8
-
-		Red Hat has announced the release of Red Hat Enterprise Linux 8.0, which comes with GNOME 3.28 as the default desktop environment and runs on Wayland.
-		If you’re looking for a fresh RHEL 8 installation, head over to our article: Installation of RHEL 8 with Screenshots
+### 01. How to Upgrade from RHEL 7 to RHEL 8
 
 		Requirements - In in-place upgrade to RHEL 8 is presently supported only on systems meeting the following requirements:
 
