@@ -116,14 +116,17 @@
 		# hostnamectl
 
 
-02. How to remove files older than 7 days by creating the cron jobs to run every night ?
-
+### 02. How to remove files older than 7 days by creating the cron jobs to run every night ?
+	```bash
 	crontab -e
-	 0 2 * * * /bin/bash find /var/log/messages -type f -mtime +7 -exce rm -rf {} \;
+	0 2 * * * /bin/bash find /var/log/messages -type f -mtime +7 -exce rm -rf {} \;
 	crontab -l 
+	```
 
-03. Shows all the lines excepts any lines starting with chracter # in a file ?
+### 03. Shows all the lines excepts any lines starting with chracter # in a file ?
+	```bash
 	cat 1 | grep -v ^#
+	```
 
 04. which files contains deafults valus when creating the a user with useradd command  ?
 
