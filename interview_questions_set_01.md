@@ -117,6 +117,7 @@
 
 
 ### 02. How to remove files older than 7 days by creating the cron jobs to run every night ?
+
 	```bash
 	crontab -e
 	0 2 * * * /bin/bash find /var/log/messages -type f -mtime +7 -exce rm -rf {} \;
